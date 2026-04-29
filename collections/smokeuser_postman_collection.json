@@ -1,0 +1,183 @@
+{
+  "info": {
+    "_postman_id": "8e068685-f512-4e9f-bf8e-cb0a2c48d689",
+    "name": "SMOKE SUITE - USERS",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54038396",
+    "_collection_link": "https://go.postman.co/collection/54038396-8e068685-f512-4e9f-bf8e-cb0a2c48d689?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Login - Smoke",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "let res;",
+              "",
+              "try {",
+              "    res = pm.response.json();",
+              "} catch (e) {",
+              "    throw new Error(\"❌ Login response is not valid JSON\");",
+              "}",
+              "",
+              "// Status",
+              "pm.test(\"Login status is 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Token exists",
+              "pm.test(\"access_token exists\", () => {",
+              "    pm.expect(res.access_token).to.exist;",
+              "    pm.expect(res.access_token).to.be.a(\"string\");",
+              "});",
+              "",
+              "// Token sanity",
+              "pm.test(\"access_token looks valid\", () => {",
+              "    pm.expect(res.access_token.length).to.be.above(20);",
+              "});",
+              "",
+              "// Save token for next requests",
+              "pm.environment.set(\"smoke_access_token\", res.access_token);",
+              "",
+              "console.log(\"✅ Smoke token saved:\", res.access_token);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"password\": \"{{static_password}}\",\r\n  \"phone\": \"{{static_phone_number}}\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{stagingUrl}}/auth/login",
+          "host": [
+            "{{stagingUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Logout - Smoke",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const jsonData = pm.response.json();\r",
+              "\r",
+              "pm.test(\"verify_success_message_is_correct\", function () {\r",
+              "    pm.expect(jsonData.message).to.include(\"logged out\");\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Logout successful\", () => {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "// Clean up token\r",
+              "pm.environment.unset(\"smoke_access_token\");\r",
+              "\r",
+              "console.log(\"🔓 Logged out, token cleared\");"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{smoke_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{stagingUrl}}/auth/logout",
+          "host": [
+            "{{stagingUrl}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          "let smokeToken = pm.environment.get(\"smoke_access_token\");",
+          "",
+          "// Skip auth header for login endpoint",
+          "if (pm.request.url.toString().includes(\"/auth/login\")) {",
+          "    return;",
+          "}",
+          "",
+          "if (smokeToken) {",
+          "    pm.request.headers.upsert({",
+          "        key: \"Authorization\",",
+          "        value: `Bearer ${smokeToken}`",
+          "    });",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          "let maxTime = pm.environment.get(\"maxResponseTime\") || 2000;",
+          "",
+          "pm.test(\"validate response time is within global threshold\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(parseInt(maxTime));",
+          "});"
+        ]
+      }
+    }
+  ]
+}

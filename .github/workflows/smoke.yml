@@ -1,0 +1,28 @@
+name: Smoke Tests - Users
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  run-smoke-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Login to Postman CLI
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Run Smoke Tests
+        run: |
+          postman collection run collections/smokeuser_postman_collection.json \
+          --environment environments/Staging.postman_environment.json \
+          --env-var static_phone_number=${{ secrets.STATIC_PHONE }} \
+          --env-var static_password=${{ secrets.STATIC_PASSWORD }}
